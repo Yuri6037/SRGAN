@@ -22,6 +22,7 @@ parser.add_argument('--upscale_factor', default=4, type=int, choices=[2, 4, 8],
 parser.add_argument('--num_epochs', default=100, type=int, help='train epoch number')
 parser.add_argument('--train-dir', type=str, help='train set directory')
 parser.add_argument('--val-dir', type=str, help='validation set directory')
+parser.add_argument('--batch', type=int, default=64, help='batch size')
 
 
 if __name__ == '__main__':
@@ -33,8 +34,8 @@ if __name__ == '__main__':
     
     train_set = TrainDatasetFromFolder(opt.train_dir, crop_size=CROP_SIZE, upscale_factor=UPSCALE_FACTOR)
     val_set = ValDatasetFromFolder(opt.val_dir, upscale_factor=UPSCALE_FACTOR)
-    train_loader = DataLoader(dataset=train_set, num_workers=4, batch_size=64, shuffle=True)
-    val_loader = DataLoader(dataset=val_set, num_workers=4, batch_size=1, shuffle=False)
+    train_loader = DataLoader(dataset=train_set, num_workers=4, batch_size=opt.batch, shuffle=True)
+    val_loader = DataLoader(dataset=val_set, num_workers=4, batch_size=opt.batch, shuffle=False)
     
     netG = Generator(UPSCALE_FACTOR)
     print('# generator parameters:', sum(param.numel() for param in netG.parameters()))
