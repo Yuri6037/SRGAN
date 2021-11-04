@@ -43,7 +43,7 @@ def display_transform():
 
 def load_hr_image_auto_decompose(img, scale):
     hr = cv2.imread(img)
-    region_size = utility.get_max_region_size(hr.shape[0] / scale, hr.shape[1] / scale)
+    region_size = utility.get_max_region_size(int(hr.shape[0] / scale), int(hr.shape[1] / scale))
     regions = utility.image_decomposition(hr, region_size)
     transform = Compose([
         ToPILImage(),
