@@ -47,7 +47,7 @@ def load_hr_image_auto_decompose(img, scale):
     regions = utility.image_decomposition(hr, region_size)
     transform = Compose([
         ToPILImage(),
-        Resize(region_size / scale, interpolation=Image.BICUBIC),
+        Resize(int(region_size / scale), interpolation=Image.BICUBIC),
         ToTensor()
     ])
     return transform, regions
