@@ -1,4 +1,4 @@
-from os import listdir
+from os import listdir, path
 from os.path import join
 
 import cv2
@@ -41,6 +41,18 @@ def display_transform():
     ])
 
 
+def load_hr_image_auto_decompose(img, scale):
+    hr = cv2.imread(img)
+    region_size = utility.get_max_region_size(hr.shape[0] / scale, hr.shape[1] / scale)
+    regions = utility.image_decomposition(hr, region_size)
+    transform = Compose([
+        ToPILImage(),
+        Resize(region_size / scale, interpolation=Image.BICUBIC),
+        ToTensor()
+    ])
+    return transform, regions
+
+
 class TrainDatasetFromFolder(Dataset):
     def __init__(self, dataset_dir, crop_size, upscale_factor):
         super(TrainDatasetFromFolder, self).__init__()
@@ -50,16 +62,10 @@ class TrainDatasetFromFolder(Dataset):
             ToTensor()
         ])
         for x in listdir(dataset_dir):
-            hr = cv2.imread(x)
-            region_size = utility.get_max_region_size(hr.shape[0] / upscale_factor, hr.shape[1] / upscale_factor)
-            regions = utility.image_decomposition(hr, region_size)
-            transform = Compose([
-                ToPILImage(),
-                Resize(region_size / upscale_factor, interpolation=Image.BICUBIC),
-                ToTensor()
-            ])
+            x = path.join(dataset_dir, x)  # Fix python broken listdir
+            lr_transform, regions = load_hr_image_auto_decompose(x, upscale_factor)
             for i in range(0, len(regions)):
-                self.images.append([regions[i], transform])
+                self.images.append([regions[i], lr_transform])
 
     def __getitem__(self, index):
         pythonisapeaceofshit = self.images[index]
@@ -67,9 +73,6 @@ class TrainDatasetFromFolder(Dataset):
         transform = pythonisapeaceofshit[1]
         lr = transform(hr)
         return lr, self.hr_transform(hr)
-        #hr_image = self.hr_transform(Image.open(self.image_filenames[index]))
-        #lr_image = self.lr_transform(hr_image)
-        #return lr_image, hr_image
 
     def __len__(self):
         return len(self.images)
@@ -78,24 +81,16 @@ class TrainDatasetFromFolder(Dataset):
 class ValDatasetFromFolder(Dataset):
     def __init__(self, dataset_dir, upscale_factor):
         super(ValDatasetFromFolder, self).__init__()
-        #self.upscale_factor = upscale_factor
-        #self.image_filenames = [join(dataset_dir, x) for x in listdir(dataset_dir) if is_image_file(x)]
         self.images = []
         self.hr_transform = Compose([
             ToPILImage(),
             ToTensor()
         ])
         for x in listdir(dataset_dir):
-            hr = cv2.imread(x)
-            region_size = utility.get_max_region_size(hr.shape[0] / upscale_factor, hr.shape[1] / upscale_factor)
-            regions = utility.image_decomposition(hr, region_size)
-            transform = Compose([
-                ToPILImage(),
-                Resize(region_size / upscale_factor, interpolation=Image.BICUBIC),
-                ToTensor()
-            ])
+            x = path.join(dataset_dir, x)  # Fix python broken listdir
+            lr_transform, regions = load_hr_image_auto_decompose(x, upscale_factor)
             for i in range(0, len(regions)):
-                self.images.append([regions[i], transform])
+                self.images.append([regions[i], lr_transform])
 
     def __getitem__(self, index):
         pythonisapeaceofshit = self.images[index]
@@ -103,15 +98,6 @@ class ValDatasetFromFolder(Dataset):
         transform = pythonisapeaceofshit[1]
         lr = transform(hr)
         return lr, self.hr_transform(hr)
-        #hr_image = Image.open(self.image_filenames[index])
-        #w, h = hr_image.size
-        #crop_size = calculate_valid_crop_size(min(w, h), self.upscale_factor)
-        #lr_scale = Resize(crop_size // self.upscale_factor, interpolation=Image.BICUBIC)
-        #hr_scale = Resize(crop_size, interpolation=Image.BICUBIC)
-        #hr_image = CenterCrop(crop_size)(hr_image)
-        #lr_image = lr_scale(hr_image)
-        #hr_restore_img = hr_scale(lr_image)
-        #return ToTensor()(lr_image), ToTensor()(hr_restore_img), ToTensor()(hr_image)
 
     def __len__(self):
         return len(self.images)
