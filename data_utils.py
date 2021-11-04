@@ -1,9 +1,12 @@
 from os import listdir
 from os.path import join
 
+import cv2
 from PIL import Image
 from torch.utils.data.dataset import Dataset
 from torchvision.transforms import Compose, RandomCrop, ToTensor, ToPILImage, CenterCrop, Resize
+
+import utility
 
 
 def is_image_file(filename):
@@ -41,39 +44,77 @@ def display_transform():
 class TrainDatasetFromFolder(Dataset):
     def __init__(self, dataset_dir, crop_size, upscale_factor):
         super(TrainDatasetFromFolder, self).__init__()
-        self.image_filenames = [join(dataset_dir, x) for x in listdir(dataset_dir) if is_image_file(x)]
-        crop_size = calculate_valid_crop_size(crop_size, upscale_factor)
-        self.hr_transform = train_hr_transform(crop_size)
-        self.lr_transform = train_lr_transform(crop_size, upscale_factor)
+        self.images = []
+        self.hr_transform = Compose([
+            ToPILImage(),
+            ToTensor()
+        ])
+        for x in listdir(dataset_dir):
+            hr = cv2.imread(x)
+            region_size = utility.get_max_region_size(hr.shape[0] / upscale_factor, hr.shape[1] / upscale_factor)
+            regions = utility.image_decomposition(hr, region_size)
+            transform = Compose([
+                ToPILImage(),
+                Resize(region_size / upscale_factor, interpolation=Image.BICUBIC),
+                ToTensor()
+            ])
+            for i in range(0, len(regions)):
+                self.images.append([regions[i], transform])
 
     def __getitem__(self, index):
-        hr_image = self.hr_transform(Image.open(self.image_filenames[index]))
-        lr_image = self.lr_transform(hr_image)
-        return lr_image, hr_image
+        pythonisapeaceofshit = self.images[index]
+        hr = pythonisapeaceofshit[0]
+        transform = pythonisapeaceofshit[1]
+        lr = transform(hr)
+        return lr, self.hr_transform(hr)
+        #hr_image = self.hr_transform(Image.open(self.image_filenames[index]))
+        #lr_image = self.lr_transform(hr_image)
+        #return lr_image, hr_image
 
     def __len__(self):
-        return len(self.image_filenames)
+        return len(self.images)
 
 
 class ValDatasetFromFolder(Dataset):
     def __init__(self, dataset_dir, upscale_factor):
         super(ValDatasetFromFolder, self).__init__()
-        self.upscale_factor = upscale_factor
-        self.image_filenames = [join(dataset_dir, x) for x in listdir(dataset_dir) if is_image_file(x)]
+        #self.upscale_factor = upscale_factor
+        #self.image_filenames = [join(dataset_dir, x) for x in listdir(dataset_dir) if is_image_file(x)]
+        self.images = []
+        self.hr_transform = Compose([
+            ToPILImage(),
+            ToTensor()
+        ])
+        for x in listdir(dataset_dir):
+            hr = cv2.imread(x)
+            region_size = utility.get_max_region_size(hr.shape[0] / upscale_factor, hr.shape[1] / upscale_factor)
+            regions = utility.image_decomposition(hr, region_size)
+            transform = Compose([
+                ToPILImage(),
+                Resize(region_size / upscale_factor, interpolation=Image.BICUBIC),
+                ToTensor()
+            ])
+            for i in range(0, len(regions)):
+                self.images.append([regions[i], transform])
 
     def __getitem__(self, index):
-        hr_image = Image.open(self.image_filenames[index])
-        w, h = hr_image.size
-        crop_size = calculate_valid_crop_size(min(w, h), self.upscale_factor)
-        lr_scale = Resize(crop_size // self.upscale_factor, interpolation=Image.BICUBIC)
-        hr_scale = Resize(crop_size, interpolation=Image.BICUBIC)
-        hr_image = CenterCrop(crop_size)(hr_image)
-        lr_image = lr_scale(hr_image)
-        hr_restore_img = hr_scale(lr_image)
-        return ToTensor()(lr_image), ToTensor()(hr_restore_img), ToTensor()(hr_image)
+        pythonisapeaceofshit = self.images[index]
+        hr = pythonisapeaceofshit[0]
+        transform = pythonisapeaceofshit[1]
+        lr = transform(hr)
+        return lr, self.hr_transform(hr)
+        #hr_image = Image.open(self.image_filenames[index])
+        #w, h = hr_image.size
+        #crop_size = calculate_valid_crop_size(min(w, h), self.upscale_factor)
+        #lr_scale = Resize(crop_size // self.upscale_factor, interpolation=Image.BICUBIC)
+        #hr_scale = Resize(crop_size, interpolation=Image.BICUBIC)
+        #hr_image = CenterCrop(crop_size)(hr_image)
+        #lr_image = lr_scale(hr_image)
+        #hr_restore_img = hr_scale(lr_image)
+        #return ToTensor()(lr_image), ToTensor()(hr_restore_img), ToTensor()(hr_image)
 
     def __len__(self):
-        return len(self.image_filenames)
+        return len(self.images)
 
 
 class TestDatasetFromFolder(Dataset):
