@@ -5,13 +5,12 @@ from math import log10
 import pandas as pd
 import torch.optim as optim
 import torch.utils.data
-import torchvision.utils as utils
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 import pytorch_ssim
-from data_utils import TrainDatasetFromFolder, ValDatasetFromFolder, display_transform
+from data_utils import TrainDatasetFromFolder, ValDatasetFromFolder
 from loss import GeneratorLoss
 from model import Generator, Discriminator
 
@@ -120,7 +119,7 @@ if __name__ == '__main__':
         with torch.no_grad():
             val_bar = tqdm(val_loader)
             valing_results = {'mse': 0, 'ssims': 0, 'psnr': 0, 'ssim': 0, 'batch_sizes': 0}
-            val_images = []
+            #val_images = []
             for val_lr, val_hr in val_bar:
                 batch_size = val_lr.size(0)
                 valing_results['batch_sizes'] += batch_size
@@ -141,17 +140,17 @@ if __name__ == '__main__':
                     desc='[converting LR images to SR images] PSNR: %.4f dB SSIM: %.4f' % (
                         valing_results['psnr'], valing_results['ssim']))
         
-                val_images.extend(
-                    [display_transform()(hr.data.cpu().squeeze(0)),
-                     display_transform()(sr.data.cpu().squeeze(0))])
-            val_images = torch.stack(val_images)
-            val_images = torch.chunk(val_images, val_images.size(0) // 15)
-            val_save_bar = tqdm(val_images, desc='[saving training results]')
-            index = 1
-            for image in val_save_bar:
-                image = utils.make_grid(image, nrow=3, padding=5)
-                utils.save_image(image, out_path + 'epoch_%d_index_%d.png' % (epoch, index), padding=5)
-                index += 1
+                #val_images.extend(
+                #    [display_transform()(hr.data.cpu().squeeze(0)),
+                #     display_transform()(sr.data.cpu().squeeze(0))])
+            #val_images = torch.stack(val_images)
+            #val_images = torch.chunk(val_images, val_images.size(0) // 15)
+            #val_save_bar = tqdm(val_images, desc='[saving training results]')
+            #index = 1
+            #for image in val_save_bar:
+            #    image = utils.make_grid(image, nrow=3, padding=5)
+            #    utils.save_image(image, out_path + 'epoch_%d_index_%d.png' % (epoch, index), padding=5)
+            #    index += 1
     
         # save model parameters
         torch.save(netG.state_dict(), 'epochs/netG_epoch_%d_%d.pth' % (UPSCALE_FACTOR, epoch))
