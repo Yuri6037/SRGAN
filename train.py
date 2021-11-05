@@ -23,6 +23,8 @@ parser.add_argument('--train-dir', type=str, help='train set directory')
 parser.add_argument('--val-dir', type=str, help='validation set directory')
 parser.add_argument('--batch', type=int, default=64, help='batch size')
 
+CHANNEL_MAX = 255
+
 
 if __name__ == '__main__':
     opt = parser.parse_args()
@@ -134,7 +136,7 @@ if __name__ == '__main__':
                 valing_results['mse'] += batch_mse * batch_size
                 batch_ssim = pytorch_ssim.ssim(sr, hr).item()
                 valing_results['ssims'] += batch_ssim * batch_size
-                valing_results['psnr'] = 10 * log10((hr.max()**2) / (valing_results['mse'] / valing_results['batch_sizes']))
+                valing_results['psnr'] = 10 * log10((CHANNEL_MAX**2) / (valing_results['mse'] / valing_results['batch_sizes']))
                 valing_results['ssim'] = valing_results['ssims'] / valing_results['batch_sizes']
                 val_bar.set_description(
                     desc='[converting LR images to SR images] PSNR: %.4f dB SSIM: %.4f' % (
